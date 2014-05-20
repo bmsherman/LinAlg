@@ -7,7 +7,7 @@ description:         LinAlg provides a domain-specific language for
                      which depend on either hmatrix or CUBLAS/MAGMA.
 license:             BSD3
 author:              Ben Sherman
-maintainer:          bmsherman@gmail.com
+maintainer:          benmsherman@gmail.com
 category:            Numeric
 build-type:          Simple
 cabal-version:       >=1.10
