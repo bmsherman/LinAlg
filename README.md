@@ -3,20 +3,25 @@ LinAlg
 
 LinAlg is a Haskell library which provides an embedded DSL for
 specifying numeric linear algebra computations in a purely
-functional manner.
-
-Its interface is very much in the spirit of the Haskell library
+functional manner. Its interface is very much in the spirit of the Haskell
+library
 [hmatrix](http://hackage.haskell.org/package/hmatrix).
+
+Backends exist (packaged separately) to execute these computations on the
+CPU (using [hmatrix](http://hackage.haskell.org/package/hmatrix)) or on
+the GPU (using bindings to CUBLAS and MAGMA).
 
 For example, suppose we'd like to express parameter estimation
 for ordinary least-squares linear regression:
 
 ```Haskell
+import Numeric.LinAlg
+
 -- | Given a matrix of features of input data (where
 -- each row is a datum) and a vector of outputs,
 -- compute the parameters which minimize the sum
 -- of squared error.
-linearRegression :: Matr m k v => m k -> v k -> v k
+linearRegression :: Matr k v m => m k -> v k -> v k
 linearRegression x y = (trans x >< x) <\> (trans x >< y)
 ```
 
