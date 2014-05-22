@@ -45,3 +45,10 @@ on the
 [Haskell bindings to CUBLAS](https://github.com/bmsherman/cublas)
 as well as
 [Haskell bindings to MAGMA](https://github.com/bmsherman/magma-gpu).
+
+### Installation
+
+It's just a simple Cabal package:
+```shell
+cabal install
+```
