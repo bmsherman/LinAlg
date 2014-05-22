@@ -46,6 +46,10 @@ on the
 as well as
 [Haskell bindings to MAGMA](https://github.com/bmsherman/magma-gpu).
 
+### Documentation
+
+[See the Haddock documentation](http://bmsherman.github.io/haddock/LinAlg/index.html).
+
 ### Installation
 
 It's just a simple Cabal package:
