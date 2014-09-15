@@ -1,7 +1,7 @@
 LinAlg
 ======
 
-LinAlg is a Haskell library which provides an embedded DSL for
+LinAlg is a Haskell library which provides an interface for
 specifying numeric linear algebra computations in a purely
 functional manner. Its interface is very much in the spirit of the Haskell
 library
