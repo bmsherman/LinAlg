@@ -32,10 +32,15 @@ LinAlg does not come with any backends. That is, it is
 impossible to *execute* any computations with this library
 alone. There are two backends available:
 
-1. **[LinAlg-hmatrix](https://github.com/bmsherman/LinAlg-hmatrix)**
+1. **HMatrix**
 for execution of computations on the CPU. It depends on 
 [hmatrix](http://hackage.haskell.org/package/hmatrix), which
 in turn uses a CPU BLAS library as well as LAPACK.
+
+It's a rather straightforward translation from hmatrix to LinAlg in fact,
+the names for many functions are exactly the same.
+
+Enable the "hmatrix" flag to install the HMatrix backend.
 
 2. **[LinAlg-magma](https://github.com/bmsherman/LinAlg-magma)** for
 execution of computations on the GPU (using CUDA). It depends
