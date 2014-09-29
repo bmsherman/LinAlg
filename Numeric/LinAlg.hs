@@ -1,6 +1,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE DataKinds, KindSignatures, PolyKinds #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE FlexibleInstances #-}
 
 {- | This module provides an embedded DSL for specifying immutable
 linear algebra computations.
@@ -15,13 +16,47 @@ import GHC.TypeLits (Nat)
 
 data Dim = V Nat | M Nat Nat
 
+
+-- | Infix, overloaded versions of functions for solving linear equations
+class Solve (n :: Nat) (dim :: Dim) where
+  infixl 7 <\>
+  infixl 7 ^\
+  infixl 7 .\
+  infixl 7 \\
+
+  -- | 'linearSolve'
+  (<\>) :: Matr k arr => arr (M n n) k -> arr dim k -> arr dim k
+
+  -- | 'utriSolve'
+  (^\) :: Matr k arr => arr (M n n) k -> arr dim k -> arr dim k
+
+  -- | 'ltriSolve'
+  (.\) :: Matr k arr => arr (M n n) k -> arr dim k -> arr dim k
+
+  -- | 'posdefSolve'
+  (\\) :: Matr k arr => arr (M n n) k -> arr dim k -> arr dim k
+
+
+instance Solve n (M n p) where
+  (<\>) = linearSolve
+  (^\) = utriSolve
+  (.\) = ltriSolve
+  (\\) = posdefSolve
+
+instance Solve n (V n) where
+  x <\> y = asColVec (linearSolve x (asColMat y))
+  x ^\ y  = asColVec (utriSolve   x (asColMat y))
+  x .\ y  = asColVec (ltriSolve   x (asColMat y))
+  x \\ y  = asColVec (posdefSolve x (asColMat y))
+
 class Product (a :: Dim) (b :: Dim) where
   type Prod a b :: Dim
+  infixl 7 ><
   (><) :: Matr k arr => arr a k -> arr b k -> arr (Prod a b) k
 
 instance Product (M m n) (M n p) where
   type Prod (M m n) (M n p) = M m p
-  x >< y = mXm x y
+  x ><  y = mXm x y
 
 instance Product (V  n) (M n p) where
   type Prod (V   n) (M n p) = V   p
@@ -35,7 +70,7 @@ instance Product (M m n) (V n  ) where
 -- that @v k@ is a vector type and @m k@ is a matrix type over the field @k@.
 class  ( Floating k, Scale k arr) 
     => Matr (k :: *) (arr :: Dim -> * -> *) where
-  -- infixl 7 >.<
+   infixl 7 >.<
 
   --
   -- Data transfer
@@ -193,37 +228,31 @@ class  ( Floating k, Scale k arr)
   --
   -- Solving linear equations
   --
-  infixl 6 <\>
-  infixl 7 ^\
-  infixl 7 .\
-  infixl 7 \\
 
   -- | Solve a general system. If there is some @x@ such that
-  -- @ m '><' x == b @, then @ x == m '<\>' b @. 
-  (<\>) :: arr (M m n) k -> arr (M m p) k -> arr (M m p) k
+  -- @ m '><' x == b @, then @ x == 'linearSolve m b' @. 
+  linearSolve :: arr (M n n) k -> arr (M n p) k -> arr (M n p) k
 
   -- | Solve a lower-triangular system. If @l@ is a lower-triangular 
-  -- matrix, then @ x == l '.\' b @ means that @ l '><' x == b @.
-  (.\) :: arr (M m n) k -> arr (M m p) k -> arr (M m p) k
-  (.\) = (<\>)
+  -- matrix, then @ x == 'ltriSolve' l b @ means that @ l '><' x == b @.
+  ltriSolve :: arr (M n n) k -> arr (M n p) k -> arr (M n p) k
+  ltriSolve = linearSolve
 
   -- | Solve a upper-triangular system. If @u@ is a upper-triangular
-  -- matrix, then @ x == u '^\' b @ means that @ u '><' x == b @.
-  (^\) :: arr (M m n) k -> arr (M m p) k -> arr (M m p) k
-  (^\) = (<\>) 
+  -- matrix, then @ x == 'utriSolve' u b @ means that @ u '><' x == b @.
+  utriSolve :: arr (M n n) k -> arr (M n p) k -> arr (M n p) k
+  utriSolve = linearSolve
 
   -- | Solve a positive-definite symmetric system. That is, if @ a @ is a
-  -- positive-definite symmetric matrix and @ x == a '\\' b @, then
+  -- positive-definite symmetric matrix and @ x == 'posdefSolve' a b @, then
   -- @ a '><' x == b @.
-  (\\)  :: arr (M m n) k -> arr (M m p) k -> arr (M m p) k
-  (\\) = (<\>)
-  --(\\) a = cholSolve (chol a)  
-  --default implementation with Cholesky decomposition
+  posdefSolve  :: arr (M n n) k -> arr (M n p) k -> arr (M n p) k
+  posdefSolve = linearSolve
 
   -- | Solve a positive-definite symmetric system using a precomputed
   -- Cholesky decomposition. If @ l == 'chol' a @ and 
-  -- @ x == l \`cholSolve\` b @, then @ a '><' x == b @.
-  cholSolve :: arr (M m n) k -> arr (M m p) k -> arr (M m p) k
+  -- @ x == l \`'cholSolve'\` b @, then @ a '><' x == b @.
+  cholSolve :: arr (M n n) k -> arr (M n p) k -> arr (M n p) k
   --l `cholSolve` b = trans l ^\ (l .\ b) --This may be broken? It's not working well
 
 -- | If the matrix is square, return 'Just' its dimension; otherwise,

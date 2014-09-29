@@ -6,8 +6,9 @@ specifying numeric linear algebra computations in a purely
 functional manner. Its interface is very much in the spirit of the Haskell
 library
 [hmatrix](http://hackage.haskell.org/package/hmatrix).
+Array sizes are reflected statically in the types.
 
-Backends exist (packaged separately) to execute these computations on the
+Backends exist to execute these computations on the
 CPU (using [hmatrix](http://hackage.haskell.org/package/hmatrix)) or on
 the GPU (using bindings to CUBLAS and MAGMA).
 
@@ -21,18 +22,14 @@ import Numeric.LinAlg
 -- each row is a datum) and a vector of outputs,
 -- compute the parameters which minimize the sum
 -- of squared error.
-linearRegression :: Matr k v m => m k -> v k -> v k
+linearRegression :: Matr k arr => arr (M n m) k -> arr (V n) k -> arr (V m) k
 linearRegression x y = (trans x >< x) <\> (trans x >< y)
 ```
 
 Backends
 --------
 
-LinAlg does not come with any backends. That is, it is
-impossible to *execute* any computations with this library
-alone. There are two backends available:
-
-1. **HMatrix**
+1. **HMatrix** (included in this package)
 for execution of computations on the CPU. It depends on 
 [hmatrix](http://hackage.haskell.org/package/hmatrix), which
 in turn uses a CPU BLAS library as well as LAPACK.
@@ -40,10 +37,13 @@ in turn uses a CPU BLAS library as well as LAPACK.
 It's a rather straightforward translation from hmatrix to LinAlg in fact,
 the names for many functions are exactly the same.
 
-Enable the "hmatrix" flag to install the HMatrix backend.
+The HMatrix backend is installed by default, but can be disabled
+by disabling the "hmatrix" flag (so the dependency on the hmatrix package
+is obviated).
 
-2. **[LinAlg-magma](https://github.com/bmsherman/LinAlg-magma)** for
-execution of computations on the GPU (using CUDA). It depends
+2. **[LinAlg-magma](https://github.com/bmsherman/LinAlg-magma)** 
+(an external package)
+for execution of computations on the GPU (using CUDA). It depends
 on the 
 [CUBLAS](https://developer.nvidia.com/cuBLAS) and 
 [MAGMA](http://icl.cs.utk.edu/magma/) libraries, and so it depends on both

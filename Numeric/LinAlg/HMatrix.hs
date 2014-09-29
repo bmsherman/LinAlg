@@ -87,7 +87,7 @@ instance (Floating k, Num (H.Matrix k), Num (H.Vector k), H.Field k, Numeric k) 
 
   elementwiseprod (HMat x) (HMat y) = HMat (x * y)
 
-  HMat m <\> HMat b = HMat (H.linearSolve m b)
+  linearSolve (HMat m) (HMat b) = HMat (H.linearSolve m b)
   trsymprod (HMat x) (HMat y) = H.sumElements (x * y)
 
   constant x = HVec . H.constant x

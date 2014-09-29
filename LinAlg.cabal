@@ -14,7 +14,7 @@ cabal-version:       >=1.10
 
 Flag HMatrix
   Description:         Enable HMatrix backend
-  Default:             False
+  Default:             True
 
 library
   exposed-modules:     Numeric.LinAlg
