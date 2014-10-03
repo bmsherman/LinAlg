@@ -1,24 +1,24 @@
-{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies #-}
 {-# LANGUAGE DataKinds, KindSignatures, PolyKinds #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-}
 
-{- | This module provides an embedded DSL for specifying immutable
+{- | This module provides an interface for specifying immutable
 linear algebra computations.
 
 This is done with the 'Matr' typeclass.
-
 -}
 
 module Numeric.LinAlg where
 import Data.List (transpose, intercalate)
-import GHC.TypeLits (Nat)
+import GHC.TypeLits (Nat, KnownNat, natVal)
+import Data.Proxy (Proxy (Proxy))
 
 data Dim = V Nat | M Nat Nat
 
 
 -- | Infix, overloaded versions of functions for solving linear equations
-class Solve (n :: Nat) (dim :: Dim) where
+class Solve (n :: Nat) (dim :: Dim) | dim -> n where
   infixl 7 <\>
   infixl 7 ^\
   infixl 7 .\
@@ -69,8 +69,8 @@ instance Product (M m n) (V n  ) where
 -- | An instance of @'Matr' k v m@ means
 -- that @v k@ is a vector type and @m k@ is a matrix type over the field @k@.
 class  ( Floating k, Scale k arr) 
-    => Matr (k :: *) (arr :: Dim -> * -> *) where
-   infixl 7 >.<
+  => Matr (k :: *) (arr :: Dim -> * -> *) where
+  infixl 7 >.<
 
   --
   -- Data transfer
@@ -135,26 +135,27 @@ class  ( Floating k, Scale k arr)
   --
   
   -- | Dimension of a matrix (rows, columns).
-  dim :: arr (M m n) k -> (Int, Int)
+  dim :: arr (M m n) k -> (Proxy m, Proxy n)
 
   -- | The number of rows in a matrix.
-  rows :: arr (M m n) k -> Int
+  rows :: arr (M m n) k -> Proxy m
   rows = fst . dim
 
   -- | The number of columns in a matrix.
-  cols :: arr (M m n) k -> Int
+  cols :: arr (M m n) k -> Proxy n
   cols = snd . dim
   
   -- | The length of a vector.
-  len :: arr (V n) k -> Int
+  len :: arr (V n) k -> Proxy n
 
   -- | Transpose a matrix.
   trans :: arr (M m n) k -> arr (M n m) k
   trans = fromLists . transpose . toLists
 
   -- | Construct the identity matrix of a given dimension. 
-  ident :: Int -> arr (M n n) k
-  ident n = fromLists [ [ if i==j then 1 else 0 | j <- [1..n] ] | i <- [1..n] ]
+  ident :: KnownNat n => Proxy n -> arr (M n n) k
+  ident n = fromLists [ [ if i==j then 1 else 0 | j <- idxes ] | i <- idxes ]
+    where idxes = [1 .. natVal n]
 
   -- | Compute the outer product of two vectors.
   outer :: arr (V m) k -> arr (V n) k -> arr (M m n) k
@@ -176,16 +177,16 @@ class  ( Floating k, Scale k arr)
   --
 
   -- | General matrix inverse.
-  inv :: arr (M n n) k -> arr (M n n) k
-  inv l = case square l of Just n -> l <\> ident n; Nothing -> error "inv: Matrix not square."
+  inv :: KnownNat n => arr (M n n) k -> arr (M n n) k
+  inv l = l <\> ident (rows l)
 
   -- | Inverse of a lower-triangular matrix.
   invL  :: arr (M n n) k -> arr (M n n) k
-  invL l = case square l of Just n -> l .\ ident n; Nothing -> error "invL: Matrix not square."
+  --invL l = case square l of Just n -> l .\ ident n; Nothing -> error "invL: Matrix not square."
 
   -- | Inverse of an upper-triangular matrix.
   invU  :: arr (M n n) k -> arr (M n n) k
-  invU u = case square u of Just n -> u ^\ ident n; Nothing -> error "invU: Matrix not square."
+  --invU u = case square u of Just n -> u ^\ ident n; Nothing -> error "invU: Matrix not square."
 
 
   --
@@ -257,8 +258,9 @@ class  ( Floating k, Scale k arr)
 
 -- | If the matrix is square, return 'Just' its dimension; otherwise,
 -- 'Nothing'.
-square :: Matr k arr => arr (M m n) k -> Maybe Int
-square m = let (i,j) = dim m in if i==j then Just i else Nothing
+square :: (KnownNat m, KnownNat n, Matr k arr) 
+  => arr (M m n) k -> Maybe (Proxy m)
+square m = let (i,j) = dim m in if natVal i==natVal j then Just i else Nothing
 
 -- | Pretty-print a matrix. (Actual prettiness not guaranteed!)
 showMat :: (Show k, Matr k arr) => arr (M m n) k -> String
