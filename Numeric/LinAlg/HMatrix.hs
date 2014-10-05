@@ -70,7 +70,7 @@ instance (Floating k, Num (H.Matrix k), Num (H.Vector k), H.Field k, Numeric k) 
   toList (HVec v) = H.toList v
   takeDiag (HMat m) = HVec (H.takeDiag m)
 
-  dim (HMat m) = (H.cols m, H.rows m)
+  dim (HMat m) = (H.rows m, H.cols m)
   rows (HMat m) = H.rows m
   cols (HMat m) = H.cols m
   trans (HMat m) = HMat (H.trans m)

@@ -2,6 +2,7 @@
 {-# LANGUAGE DataKinds, KindSignatures, PolyKinds #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 {- | This module provides an interface for specifying immutable
 linear algebra computations.
@@ -11,8 +12,7 @@ This is done with the 'Matr' typeclass.
 
 module Numeric.LinAlg where
 import Data.List (transpose, intercalate)
-import GHC.TypeLits (Nat, KnownNat, natVal)
-import Data.Proxy (Proxy (Proxy))
+import GHC.TypeLits (Nat)
 
 data Dim = V Nat | M Nat Nat
 
@@ -135,27 +135,27 @@ class  ( Floating k, Scale k arr)
   --
   
   -- | Dimension of a matrix (rows, columns).
-  dim :: arr (M m n) k -> (Proxy m, Proxy n)
+  dim :: arr (M m n) k -> (Int, Int)
 
   -- | The number of rows in a matrix.
-  rows :: arr (M m n) k -> Proxy m
+  rows :: arr (M m n) k -> Int
   rows = fst . dim
 
   -- | The number of columns in a matrix.
-  cols :: arr (M m n) k -> Proxy n
+  cols :: arr (M m n) k -> Int
   cols = snd . dim
   
   -- | The length of a vector.
-  len :: arr (V n) k -> Proxy n
+  len :: arr (V n) k -> Int
 
   -- | Transpose a matrix.
   trans :: arr (M m n) k -> arr (M n m) k
   trans = fromLists . transpose . toLists
 
   -- | Construct the identity matrix of a given dimension. 
-  ident :: KnownNat n => Proxy n -> arr (M n n) k
+  ident :: Int -> arr (M n n) k
   ident n = fromLists [ [ if i==j then 1 else 0 | j <- idxes ] | i <- idxes ]
-    where idxes = [1 .. natVal n]
+    where idxes = [1 .. n]
 
   -- | Compute the outer product of two vectors.
   outer :: arr (V m) k -> arr (V n) k -> arr (M m n) k
@@ -177,8 +177,10 @@ class  ( Floating k, Scale k arr)
   --
 
   -- | General matrix inverse.
-  inv :: KnownNat n => arr (M n n) k -> arr (M n n) k
-  inv l = l <\> ident (rows l)
+  inv :: arr (M n n) k -> arr (M n n) k
+  inv l = case square l of 
+    Just n -> l <\> ident n
+    Nothing -> error "inv: Matrix not square"
 
   -- | Inverse of a lower-triangular matrix.
   invL  :: arr (M n n) k -> arr (M n n) k
@@ -258,9 +260,8 @@ class  ( Floating k, Scale k arr)
 
 -- | If the matrix is square, return 'Just' its dimension; otherwise,
 -- 'Nothing'.
-square :: (KnownNat m, KnownNat n, Matr k arr) 
-  => arr (M m n) k -> Maybe (Proxy m)
-square m = let (i,j) = dim m in if natVal i==natVal j then Just i else Nothing
+square :: Matr k arr => arr (M m n) k -> Maybe Int
+square m = let (i,j) = dim m in if i==j then Just i else Nothing
 
 -- | Pretty-print a matrix. (Actual prettiness not guaranteed!)
 showMat :: (Show k, Matr k arr) => arr (M m n) k -> String
