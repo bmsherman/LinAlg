@@ -29,7 +29,7 @@ linearRegression x y = (trans x >< x) <\> (trans x >< y)
 Backends
 --------
 
-1. **HMatrix** (included in this package)
+1) **HMatrix** (included in this package)
 for execution of computations on the CPU. It depends on 
 [hmatrix](http://hackage.haskell.org/package/hmatrix), which
 in turn uses a CPU BLAS library as well as LAPACK.
@@ -41,7 +41,7 @@ The HMatrix backend is installed by default, but can be disabled
 by disabling the "hmatrix" flag (so the dependency on the hmatrix package
 is obviated).
 
-2. **[LinAlg-magma](https://github.com/bmsherman/LinAlg-magma)** 
+2) **[LinAlg-magma](https://github.com/bmsherman/LinAlg-magma)** 
 (an external package)
 for execution of computations on the GPU (using CUDA). It depends
 on the 

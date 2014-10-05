@@ -1,7 +1,7 @@
 name:                LinAlg
 version:             0.2.0.0
-synopsis:            A DSL for specifying linear algebra computations
-description:         LinAlg provides a domain-specific language for
+synopsis:            An interface for specifying linear algebra computations
+description:         LinAlg provides an interface for
                      specifying functional linear algebra computations 
                      (with immutable data structures). There exist backends
                      which depend on either hmatrix or CUBLAS/MAGMA.
