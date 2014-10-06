@@ -1,5 +1,6 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies #-}
-{-# LANGUAGE DataKinds, KindSignatures, PolyKinds #-}
+{-# LANGUAGE DataKinds, KindSignatures, PolyKinds, TypeOperators #-}
+{-# LANGUAGE GADTs #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -11,11 +12,16 @@ This is done with the 'Matr' typeclass.
 -}
 
 module Numeric.LinAlg where
+
 import Data.List (transpose, intercalate)
+import Data.Type.Equality ((:~:))
 import GHC.TypeLits (Nat)
 
-data Dim = V Nat | M Nat Nat
+import qualified Numeric.LinAlg.Vect as V
+import Numeric.LinAlg.Vect (Vect)
+import Numeric.LinAlg.SNat
 
+data Dim = V Nat | M Nat Nat
 
 -- | Infix, overloaded versions of functions for solving linear equations
 class Solve (n :: Nat) (dim :: Dim) | dim -> n where
@@ -77,47 +83,41 @@ class  ( Floating k, Scale k arr)
   --
 
   -- | Convert a list of elements to a vector.
-  fromList :: [k] -> arr (V n) k
+  fromVect :: Vect n k -> arr (V n) k
 
   -- | Convert a vector to a list of its elements.
-  toList :: arr (V n) k -> [k]
+  toVect :: arr (V n) k -> Vect n k
 
   -- | Convert a row-major list of lists of elements (which should all have
   -- the same length) to a matrix containing those elements.
-  fromLists :: [[k]] -> arr (M m n) k
+  fromVects :: Vect m (Vect n k) -> arr (M m n) k
 
   -- | Convert a matrix to a list of its rows, each given as a list of 
   -- elements.
-  toLists :: arr (M m n) k -> [[k]]
+  toVects :: arr (M m n) k -> Vect m (Vect n k)
   
   -- | Convert a matrix to a list of its rows.
-  toRows :: arr (M m n) k -> [arr (V n) k]
-  toRows = map fromList . toLists
+  toRows :: arr (M m n) k -> Vect m (arr (V n) k)
 
   -- | Convert a matrix to a list of its columns.
-  toColumns :: arr (M m n) k -> [arr (V m) k]
+  toColumns :: arr (M m n) k -> Vect n (arr (V m) k)
   toColumns = toRows . trans
 
   -- | Convert a list of vectors to a matrix having those vectors as rows.
-  fromRows :: [arr (V n) k] -> arr (M m n) k
-  fromRows = fromLists . map toList
+  fromRows :: Vect m (arr (V n) k) -> arr (M m n) k
 
   -- | Convert a list of vectors to a matrix having those vectors as
   -- columns.
-
-  --Is there a better default implementation for this?
-  fromColumns :: [arr (V m) k] -> arr (M m n) k
-  fromColumns = trans . fromRows
+  fromColumns :: Vect n (arr (V m) k) -> arr (M m n) k
 
   -- | Regard a vector as a matrix with a single column.
   asColMat :: arr (V n) k -> arr (M n 1) k
-  asColMat = fromColumns . (:[])
 
   -- | Convert a matrix which has only one column to a vector.
   -- This function may have undefined behavior if the input matrix has more
   -- than one column.
   asColVec :: arr (M n 1)  k -> arr (V n) k
-  asColVec = head . toColumns
+  asColVec = V.head . toColumns
 
   -- | Produce a diagonal matrix with the given vector along its diagonal
   -- (and zeros elsewhere).
@@ -126,36 +126,30 @@ class  ( Floating k, Scale k arr)
   -- | Return a vector of elements along the diagonal of the matrix.
   -- Does not necessarily fail if the matrix is not square.
   takeDiag :: arr (M n n) k -> arr (V n) k
-  takeDiag = fromList . diag 0 . toLists where
-    diag _ [] = []
-    diag n (xs:xss) = (xs !! n) : diag (n+1) xss 
 
   --
   -- Core operations
   --
   
   -- | Dimension of a matrix (rows, columns).
-  dim :: arr (M m n) k -> (Int, Int)
+  dim :: arr (M m n) k -> (SNat m, SNat n)
 
   -- | The number of rows in a matrix.
-  rows :: arr (M m n) k -> Int
+  rows :: arr (M m n) k -> SNat m
   rows = fst . dim
 
   -- | The number of columns in a matrix.
-  cols :: arr (M m n) k -> Int
+  cols :: arr (M m n) k -> SNat n
   cols = snd . dim
   
   -- | The length of a vector.
-  len :: arr (V n) k -> Int
+  len :: arr (V n) k -> SNat n
 
   -- | Transpose a matrix.
   trans :: arr (M m n) k -> arr (M n m) k
-  trans = fromLists . transpose . toLists
 
   -- | Construct the identity matrix of a given dimension. 
-  ident :: Int -> arr (M n n) k
-  ident n = fromLists [ [ if i==j then 1 else 0 | j <- idxes ] | i <- idxes ]
-    where idxes = [1 .. n]
+  ident :: SNat n -> arr (M n n) k
 
   -- | Compute the outer product of two vectors.
   outer :: arr (V m) k -> arr (V n) k -> arr (M m n) k
@@ -169,8 +163,6 @@ class  ( Floating k, Scale k arr)
   -- | Compute the elementwise product (i.e., Hadamard product) of 
   -- two matrices.
   elementwiseprod :: arr (M m n) k -> arr (M m n) k -> arr (M m n) k
-  elementwiseprod x y = let [x', y'] = map toLists [x,y] in
-    fromLists $ zipWith (zipWith (*)) x' y'
 
   --
   -- Solving linear systems
@@ -178,17 +170,15 @@ class  ( Floating k, Scale k arr)
 
   -- | General matrix inverse.
   inv :: arr (M n n) k -> arr (M n n) k
-  inv l = case square l of 
-    Just n -> l <\> ident n
-    Nothing -> error "inv: Matrix not square"
+  inv m = linearSolve m (ident (rows m))
 
   -- | Inverse of a lower-triangular matrix.
   invL  :: arr (M n n) k -> arr (M n n) k
-  --invL l = case square l of Just n -> l .\ ident n; Nothing -> error "invL: Matrix not square."
+  invL = inv
 
   -- | Inverse of an upper-triangular matrix.
   invU  :: arr (M n n) k -> arr (M n n) k
-  --invU u = case square u of Just n -> u ^\ ident n; Nothing -> error "invU: Matrix not square."
+  invU = inv
 
 
   --
@@ -211,7 +201,7 @@ class  ( Floating k, Scale k arr)
   -- @ l == 'chol' a @ and @ d == 'cholLnDet' l @, then @ d @ is the 
   -- log-determinant of @ a @.
   cholLnDet :: arr (M n n) k -> k
-  cholLnDet = (2*) . sum . map log . toList . takeDiag
+  cholLnDet = (2*) . sum . map log . V.toList . toVect . takeDiag
 
   --
   -- Other functions
@@ -225,8 +215,7 @@ class  ( Floating k, Scale k arr)
 
   -- | Create a vector of a given length whose elements all have the same
   -- value.
-  constant :: k -> Int -> arr (V n) k
-  constant alpha n = fromList (replicate n alpha)
+  constant :: k -> SNat n -> arr (V n) k
 
   --
   -- Solving linear equations
@@ -260,14 +249,16 @@ class  ( Floating k, Scale k arr)
 
 -- | If the matrix is square, return 'Just' its dimension; otherwise,
 -- 'Nothing'.
-square :: Matr k arr => arr (M m n) k -> Maybe Int
-square m = let (i,j) = dim m in if i==j then Just i else Nothing
+square :: Matr k arr => arr (M m n) k -> Maybe (m :~: n)
+square m = let (i,j) = dim m in cmp i j
 
 -- | Pretty-print a matrix. (Actual prettiness not guaranteed!)
 showMat :: (Show k, Matr k arr) => arr (M m n) k -> String
 showMat = intercalate "\n" . map ( intercalate "\t" . map show ) . toLists
 
 
+toLists :: Matr k arr => arr (M m n) k -> [[k]]
+toLists = map (V.toList) . V.toList . toVects
 
 -- | Scalar multiplication for vector spaces.
 class Scale k arr where
