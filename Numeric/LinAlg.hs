@@ -245,7 +245,7 @@ class  ( Floating k, Scale k arr)
   -- Cholesky decomposition. If @ l == 'chol' a @ and 
   -- @ x == l \`'cholSolve'\` b @, then @ a '><' x == b @.
   cholSolve :: arr (M n n) k -> arr (M n p) k -> arr (M n p) k
-  --l `cholSolve` b = trans l ^\ (l .\ b) --This may be broken? It's not working well
+  l `cholSolve` b = trans l ^\ (l .\ b) --This may be broken? It's not working well
 
 -- | If the matrix is square, return 'Just' its dimension; otherwise,
 -- 'Nothing'.

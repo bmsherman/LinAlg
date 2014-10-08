@@ -7,6 +7,7 @@
 module Numeric.LinAlg.HMatrix (
     module Numeric.LinAlg
   , HArr, hMat, hVec
+  , SomeMatrix (..), SomeVector (..)
 ) where
 
 import Data.Proxy (Proxy (Proxy))

@@ -13,7 +13,7 @@ import Data.Type.Equality ((:~:) (Refl))
 import GHC.TypeLits
 import Unsafe.Coerce (unsafeCoerce)
 
-data SNat :: Nat -> * where
+newtype SNat :: Nat -> * where
   MkNat :: Int -> SNat n
   deriving (Eq, Show, Ord)
 

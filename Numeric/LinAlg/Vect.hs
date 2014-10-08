@@ -20,7 +20,7 @@ import qualified Prelude as P
 
 import Unsafe.Coerce (unsafeCoerce)
 
-data Vect :: Nat -> * -> * where
+newtype Vect :: Nat -> * -> * where
   MkVect :: [a] -> Vect n a
   deriving (Eq, Show, Ord)
 
