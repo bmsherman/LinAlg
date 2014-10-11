@@ -1,14 +1,16 @@
 {-# LANGUAGE DataKinds, GADTs, KindSignatures, TypeOperators #-}
 
 module Numeric.LinAlg.Vect (
-  Vect (..), SomeVect (..),
+  Vect, SomeVect (..),
   nil, cons, length,
   head,
   map, fromList, toList,
   transpose,
-  generate
+  generate,
+  unsafeFromList
 ) where
 
+import Data.Coerce (coerce)
 import qualified Data.List as P
 import Data.Proxy (Proxy (Proxy))
 
@@ -26,6 +28,9 @@ newtype Vect :: Nat -> * -> * where
 
 data SomeVect a where
   SomeVect :: Vect n a -> SomeVect a
+
+unsafeFromList :: [a] -> Vect n a
+unsafeFromList = MkVect
 
 length :: Vect n a -> SNat n
 length (MkVect xs) = case (someNatVal (fromIntegral (P.length xs))) of

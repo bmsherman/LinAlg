@@ -17,7 +17,7 @@ import GHC.TypeLits (SomeNat (SomeNat), someNatVal)
 import Numeric.LinAlg
 import Numeric.LinAlg.SNat
 import qualified Numeric.LinAlg.Vect as V
-import Numeric.LinAlg.Vect (Vect (MkVect))
+import Numeric.LinAlg.Vect (Vect)
 import qualified Numeric.LinearAlgebra as H
 import Numeric.LinearAlgebra.HMatrix (Numeric)
 
@@ -80,22 +80,32 @@ instance H.Container H.Vector e => Scale e HArr where
   c .* HVec n v = HVec n $ H.scale c v
   c .* HMat i j m = HMat i j $ H.scale c m
 
+
 instance (Floating k, Num (H.Matrix k), Num (H.Vector k), H.Field k, Numeric k) => Matr k HArr where
 
-  toRows (HMat m n x) = MkVect (map (HVec n) (H.toRows x))
-  toColumns (HMat m n x) = MkVect (map (HVec m) . H.toRows $ H.trans x)
+  toRows (HMat m n x) = V.unsafeFromList (map (HVec n) (H.toRows x))
+  toColumns (HMat m n x) = V.unsafeFromList (map (HVec m) . H.toRows $ H.trans x)
 
-  fromRows vect@(MkVect vs@(HVec n _ : _)) = HMat (V.length vect) n 
-    (H.fromRows (map (\(HVec _ v) -> v) vs))
+  fromRows vect = case vs of
+    (HVec n _ : _) -> HMat (V.length vect) n 
+      (H.fromRows (map (\(HVec _ v) -> v) vs))
+    where 
+    vs = V.toList vect 
 
-  fromColumns vect@(MkVect vs@(HVec m _ : _)) = HMat m (V.length vect)
-    (H.fromColumns (map (\(HVec _ v) -> v) vs))
+  fromColumns vect = case vs of 
+    (HVec m _ : _) -> HMat m (V.length vect)
+      (H.fromColumns (map (\(HVec _ v) -> v) vs))
+    where
+    vs = V.toList vect
 
-  fromVects vect@(MkVect xss@(xs : _)) = 
+  fromVects vect = 
     HMat (V.length vect) (V.length xs) (H.fromLists (map V.toList xss))
-  toVects (HMat m n x) = MkVect (map MkVect (H.toLists x))
-  fromVect vect@(MkVect xs) = HVec (V.length vect) (H.fromList xs)
-  toVect (HVec n v) = MkVect (H.toList v)
+    where
+    xss@(xs : _) = V.toList vect
+
+  toVects (HMat m n x) = V.unsafeFromList (map V.unsafeFromList (H.toLists x))
+  fromVect vect = HVec (V.length vect) (H.fromList (V.toList vect))
+  toVect (HVec n v) = V.unsafeFromList (H.toList v)
   takeDiag (HMat m n x) = HVec m (H.takeDiag x)
 
   asColMat (HVec n v) = HMat n (lit (Proxy :: Proxy 1)) (H.fromColumns [v])

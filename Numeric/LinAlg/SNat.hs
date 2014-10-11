@@ -1,13 +1,14 @@
 {-# LANGUAGE DataKinds, GADTs, KindSignatures, TypeOperators #-}
-{-# LANGUAGE ScopedTypeVariables #-}
 module Numeric.LinAlg.SNat (
   SNat, snat,
   lit,
   plus, times, pow,
   minus,
-  cmp
+  cmp,
+  unsafeCoerceSNat
 ) where
 
+import Data.Coerce (coerce)
 import Data.Proxy (Proxy (Proxy))
 import Data.Type.Equality ((:~:) (Refl))
 import GHC.TypeLits
@@ -19,6 +20,9 @@ newtype SNat :: Nat -> * where
 
 snat :: SNat n -> Int
 snat (MkNat i) = i
+
+unsafeCoerceSNat :: SNat n -> SNat m
+unsafeCoerceSNat = coerce
 
 lit :: KnownNat n => Proxy n -> SNat n
 lit n = MkNat (fromIntegral (natVal n))
