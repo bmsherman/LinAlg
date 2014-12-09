@@ -34,7 +34,7 @@ for execution of computations on the CPU. It depends on
 [hmatrix](http://hackage.haskell.org/package/hmatrix), which
 in turn uses a CPU BLAS library as well as LAPACK.
 
-It's a rather straightforward translation from hmatrix to LinAlg in fact,
+It's a rather straightforward translation from hmatrix to LinAlg; in fact,
 the names for many functions are exactly the same.
 
 The HMatrix backend is installed by default, but can be disabled
